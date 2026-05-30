@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Synthara Forge — Synthesize and Forge Datasets</title>
+<meta name="description" content="Custom dataset synthesis for AI training and evaluation. Agentic RL, multi-agent workflows, domain reasoning, and bespoke evaluation benchmarks." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,900&family=JetBrains+Mono:wght@300;400;500;600&family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #0a0908;
+  --bg-elev: #131210;
+  --bg-elev-2: #1a1816;
+  --ink: #f4ede4;
+  --ink-dim: #a39d92;
+  --ink-faint: #645f56;
+  --rule: #2a2724;
+  --rule-bright: #3a3530;
+  --ember: #ff6a1f;
+  --ember-bright: #ff8a3d;
+  --ember-deep: #c2410c;
+  --molten: #ffb347;
+  --steel: #6b7280;
+  --success: #84cc16;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter Tight', -apple-system, sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Background grain + ember glow */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(ellipse 800px 600px at 85% 10%, rgba(255, 106, 31, 0.08), transparent 60%),
+    radial-gradient(ellipse 600px 400px at 10% 90%, rgba(194, 65, 12, 0.06), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E");
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: overlay;
+}
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 32px;
+  position: relative;
+  z-index: 2;
+}
+
+/* ============ NAV ============ */
+nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+  background: rgba(10, 9, 8, 0.7);
+  border-bottom: 1px solid var(--rule);
+}
+
+.nav-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 18px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  position: relative;
+}
+
+.brand-text {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+}
+
+.brand-text .accent { color: var(--ember); }
+
+.nav-links {
+  display: flex;
+  gap: 36px;
+  align-items: center;
+}
+
+.nav-links a {
+  color: var(--ink-dim);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: color 0.2s;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.02em;
+}
+
+.nav-links a:hover { color: var(--ember); }
+
+.nav-cta {
+  padding: 9px 18px;
+  background: var(--ember);
+  color: var(--bg) !important;
+  border-radius: 2px;
+  font-weight: 600 !important;
+  transition: all 0.2s !important;
+}
+
+.nav-cta:hover {
+  background: var(--ember-bright);
+  color: var(--bg) !important;
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .nav-links a:not(.nav-cta) { display: none; }
+}
+
+/* ============ HERO ============ */
+.hero {
+  min-height: 100vh;
+  padding: 140px 0 80px;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+
+@media (max-width: 1024px) {
+  .hero-grid { grid-template-columns: 1fr; gap: 60px; }
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ember);
+  margin-bottom: 28px;
+}
+
+.eyebrow::before {
+  content: '';
+  width: 24px;
+  height: 1px;
+  background: var(--ember);
+}
+
+h1.hero-title {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+  font-size: clamp(48px, 7vw, 92px);
+  line-height: 0.98;
+  letter-spacing: -0.03em;
+  margin-bottom: 32px;
+  font-variation-settings: "opsz" 144;
+}
+
+.hero-title .italic {
+  font-style: italic;
+  font-weight: 300;
+  color: var(--ember);
+}
+
+.hero-title .strike {
+  position: relative;
+  display: inline-block;
+}
+
+.hero-sub {
+  font-size: 20px;
+  line-height: 1.55;
+  color: var(--ink-dim);
+  max-width: 580px;
+  margin-bottom: 44px;
+  font-weight: 300;
+}
+
+.hero-sub strong {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.hero-ctas {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 28px;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 15px;
+  border-radius: 2px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+}
+
+.btn-primary {
+  background: var(--ember);
+  color: var(--bg);
+  box-shadow: 0 0 0 0 rgba(255, 106, 31, 0.4);
+}
+
+.btn-primary:hover {
+  background: var(--ember-bright);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px -8px rgba(255, 106, 31, 0.6);
+}
+
+.btn-ghost {
+  color: var(--ink);
+  border: 1px solid var(--rule-bright);
+  background: transparent;
+}
+
+.btn-ghost:hover {
+  border-color: var(--ember);
+  color: var(--ember);
+}
+
+.btn .arrow { transition: transform 0.25s; }
+.btn:hover .arrow { transform: translateX(4px); }
+
+/* Hero visual — the forge */
+.hero-visual {
+  position: relative;
+  aspect-ratio: 1;
+  max-width: 480px;
+  margin-left: auto;
+}
+
+.forge-svg {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+.hero-visual::before {
+  content: '';
+  position: absolute;
+  inset: 20%;
+  background: radial-gradient(circle, var(--ember) 0%, transparent 70%);
+  filter: blur(60px);
+  opacity: 0.5;
+  z-index: 1;
+  animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.1); }
+}
+
+/* ============ STATS BAR ============ */
+.stats-bar {
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 32px 0;
+  margin-top: 80px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 40px;
+}
+
+@media (max-width: 768px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 28px; }
+}
+
+.stat-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-family: 'Fraunces', serif;
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.stat-value .unit {
+  font-size: 16px;
+  color: var(--ember);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+/* ============ SECTION COMMON ============ */
+section {
+  padding: 120px 0;
+  position: relative;
+  z-index: 2;
+}
+
+.section-header {
+  margin-bottom: 72px;
+  max-width: 720px;
+}
+
+.section-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ember);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-tag::before {
+  content: counter(section);
+  counter-increment: section;
+  font-variant-numeric: tabular-nums;
+}
+
+body { counter-reset: section; }
+
+h2 {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+  font-size: clamp(36px, 4.5vw, 56px);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  margin-bottom: 24px;
+}
+
+h2 .italic {
+  font-style: italic;
+  color: var(--ember);
+  font-weight: 300;
+}
+
+.section-lead {
+  font-size: 19px;
+  color: var(--ink-dim);
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+/* ============ CAPABILITIES ============ */
+.cap-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+}
+
+@media (max-width: 768px) {
+  .cap-grid { grid-template-columns: 1fr; }
+}
+
+.cap-card {
+  background: var(--bg);
+  padding: 44px 36px;
+  position: relative;
+  transition: background 0.3s;
+  cursor: default;
+}
+
+.cap-card:hover {
+  background: var(--bg-elev);
+}
+
+.cap-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--ember);
+  margin-bottom: 20px;
+}
+
+.cap-title {
+  font-family: 'Fraunces', serif;
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  margin-bottom: 14px;
+  line-height: 1.15;
+}
+
+.cap-desc {
+  color: var(--ink-dim);
+  font-size: 15.5px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.cap-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cap-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 4px 10px;
+  border: 1px solid var(--rule-bright);
+  color: var(--ink-faint);
+  border-radius: 2px;
+}
+
+/* ============ PROCESS ============ */
+.process-section {
+  background: var(--bg-elev);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.process-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 32px;
+  position: relative;
+}
+
+@media (max-width: 1024px) {
+  .process-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .process-grid { grid-template-columns: 1fr; }
+}
+
+.process-step {
+  position: relative;
+  padding-top: 32px;
+  border-top: 1px solid var(--rule-bright);
+}
+
+.process-step::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 40px;
+  height: 1px;
+  background: var(--ember);
+}
+
+.process-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--ember);
+  margin-bottom: 16px;
+}
+
+.process-title {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  margin-bottom: 12px;
+}
+
+.process-desc {
+  color: var(--ink-dim);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+/* ============ EXAMPLES ============ */
+.examples-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .examples-grid { grid-template-columns: 1fr; }
+}
+
+.example-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--rule);
+  padding: 32px;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s;
+}
+
+.example-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--ember), var(--molten));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s;
+}
+
+.example-card:hover {
+  border-color: var(--rule-bright);
+  transform: translateY(-4px);
+}
+
+.example-card:hover::before {
+  transform: scaleX(1);
+}
+
+.example-domain {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ember);
+  margin-bottom: 16px;
+}
+
+.example-title {
+  font-family: 'Fraunces', serif;
+  font-size: 22px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.example-desc {
+  color: var(--ink-dim);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
+.example-meta {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.example-meta .val { color: var(--ink); }
+
+/* ============ CONTACT FORM ============ */
+.contact-section {
+  border-top: 1px solid var(--rule);
+}
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 80px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .contact-grid { grid-template-columns: 1fr; gap: 48px; }
+}
+
+.contact-info h2 { margin-bottom: 32px; }
+
+.contact-meta {
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid var(--rule);
+}
+
+.contact-meta-item {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  align-items: flex-start;
+}
+
+.contact-meta-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  min-width: 100px;
+  padding-top: 2px;
+}
+
+.contact-meta-val {
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.contact-meta-val a {
+  color: var(--ember);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.contact-meta-val a:hover { border-bottom-color: var(--ember); }
+
+/* Form */
+.form-container {
+  background: var(--bg-elev);
+  border: 1px solid var(--rule);
+  padding: 48px;
+  border-radius: 4px;
+  position: relative;
+}
+
+@media (max-width: 600px) {
+  .form-container { padding: 32px 24px; }
+}
+
+.form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.form-title {
+  font-family: 'Fraunces', serif;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.form-status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--success);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  background: var(--success);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--success);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 600px) {
+  .form-row { grid-template-columns: 1fr; }
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
+}
+
+label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  margin-bottom: 10px;
+}
+
+label .req { color: var(--ember); margin-left: 2px; }
+
+input, textarea, select {
+  background: var(--bg);
+  border: 1px solid var(--rule-bright);
+  color: var(--ink);
+  padding: 14px 16px;
+  font-family: inherit;
+  font-size: 15px;
+  border-radius: 2px;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--ember);
+  background: var(--bg-elev-2);
+  box-shadow: 0 0 0 3px rgba(255, 106, 31, 0.1);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--ink-faint);
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23ff6a1f' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 40px;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 120px;
+  font-family: inherit;
+}
+
+.form-submit {
+  width: 100%;
+  margin-top: 8px;
+  justify-content: center;
+  padding: 18px;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
+.form-disclaimer {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-faint);
+  text-align: center;
+  margin-top: 16px;
+  line-height: 1.6;
+}
+
+.form-success {
+  display: none;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.form-success.active { display: block; }
+.form-container.submitted .form-content { display: none; }
+
+.success-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 24px;
+  border: 2px solid var(--success);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--success);
+  font-size: 28px;
+}
+
+.success-title {
+  font-family: 'Fraunces', serif;
+  font-size: 26px;
+  margin-bottom: 12px;
+}
+
+.success-msg {
+  color: var(--ink-dim);
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+/* ============ FOOTER ============ */
+footer {
+  border-top: 1px solid var(--rule);
+  padding: 48px 0 32px;
+  position: relative;
+  z-index: 2;
+}
+
+.footer-grid {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.footer-brand {
+  font-family: 'Fraunces', serif;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.footer-brand .accent { color: var(--ember); }
+
+.footer-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.footer-bottom {
+  padding-top: 24px;
+  border-top: 1px solid var(--rule);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--ink-faint);
+  letter-spacing: 0.1em;
+}
+
+/* Reveal animation */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s, transform 0.8s;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>
+</head>
+<body>
+
+<!-- ============ NAV ============ -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M16 2L4 9v14l12 7 12-7V9L16 2z" stroke="#ff6a1f" stroke-width="1.5" fill="rgba(255,106,31,0.08)"/>
+        <path d="M16 10L10 13.5v7l6 3.5 6-3.5v-7L16 10z" fill="#ff6a1f"/>
+        <circle cx="16" cy="17" r="2" fill="#0a0908"/>
+      </svg>
+      <span class="brand-text">Synthara<span class="accent">.</span>Forge</span>
+    </a>
+    <div class="nav-links">
+      <a href="#capabilities">Capabilities</a>
+      <a href="#process">Process</a>
+      <a href="#examples">Examples</a>
+      <a href="#contact" class="nav-cta">Request a Dataset →</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow">Custom Dataset Studio · Est. 2026</div>
+        <h1 class="hero-title">
+          We <span class="italic">synthesize</span><br/>
+          and forge the data<br/>
+          your models need.
+        </h1>
+        <p class="hero-sub">
+          <strong>Synthara Forge</strong> builds bespoke datasets for AI training and evaluation — agentic RL trajectories, multi-agent workflow traces, domain-expert reasoning corpora, and custom eval benchmarks. Specified to your objective. Verified to your bar. Documented for your team.
+        </p>
+        <div class="hero-ctas">
+          <a href="#contact" class="btn btn-primary">
+            Request a Dataset
+            <span class="arrow">→</span>
+          </a>
+          <a href="#capabilities" class="btn btn-ghost">See what we build</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <svg class="forge-svg" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Outer ring -->
+          <circle cx="200" cy="200" r="180" stroke="#2a2724" stroke-width="1"/>
+          <circle cx="200" cy="200" r="140" stroke="#2a2724" stroke-width="1" stroke-dasharray="2 4"/>
+
+          <!-- Rotating data nodes -->
+          <g transform="translate(200 200)">
+            <g>
+              <circle cx="0" cy="-160" r="4" fill="#ff6a1f"/>
+              <circle cx="140" cy="-80" r="3" fill="#ff8a3d"/>
+              <circle cx="140" cy="80" r="3" fill="#ffb347"/>
+              <circle cx="0" cy="160" r="4" fill="#ff6a1f"/>
+              <circle cx="-140" cy="80" r="3" fill="#ff8a3d"/>
+              <circle cx="-140" cy="-80" r="3" fill="#ffb347"/>
+              <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="40s" repeatCount="indefinite"/>
+            </g>
+          </g>
+
+          <!-- Inner hexagon (the forge) -->
+          <g transform="translate(200 200)">
+            <polygon points="0,-90 78,-45 78,45 0,90 -78,45 -78,-45"
+                     stroke="#ff6a1f" stroke-width="1.5" fill="rgba(255,106,31,0.06)"/>
+            <polygon points="0,-60 52,-30 52,30 0,60 -52,30 -52,-30"
+                     stroke="#ff8a3d" stroke-width="1" fill="rgba(255,138,61,0.1)"/>
+          </g>
+
+          <!-- Molten core -->
+          <circle cx="200" cy="200" r="28" fill="url(#core-grad)"/>
+          <circle cx="200" cy="200" r="14" fill="#ffb347"/>
+          <circle cx="200" cy="200" r="6" fill="#fff5d9"/>
+
+          <!-- Sparks -->
+          <g opacity="0.7">
+            <circle cx="240" cy="160" r="1.5" fill="#ffb347">
+              <animate attributeName="opacity" values="0;1;0" dur="2s" repeatCount="indefinite"/>
+            </circle>
+            <circle cx="160" cy="240" r="1.5" fill="#ffb347">
+              <animate attributeName="opacity" values="0;1;0" dur="2.5s" repeatCount="indefinite" begin="0.5s"/>
+            </circle>
+            <circle cx="245" cy="245" r="1" fill="#ff6a1f">
+              <animate attributeName="opacity" values="0;1;0" dur="1.8s" repeatCount="indefinite" begin="0.8s"/>
+            </circle>
+            <circle cx="155" cy="155" r="1" fill="#ff6a1f">
+              <animate attributeName="opacity" values="0;1;0" dur="2.2s" repeatCount="indefinite" begin="1.2s"/>
+            </circle>
+          </g>
+
+          <!-- Crosshair marks -->
+          <g stroke="#3a3530" stroke-width="1">
+            <line x1="200" y1="20" x2="200" y2="35"/>
+            <line x1="200" y1="365" x2="200" y2="380"/>
+            <line x1="20" y1="200" x2="35" y2="200"/>
+            <line x1="365" y1="200" x2="380" y2="200"/>
+          </g>
+
+          <!-- Annotation labels -->
+          <text x="200" y="14" text-anchor="middle" fill="#645f56" font-family="JetBrains Mono" font-size="9" letter-spacing="2">SOURCE</text>
+          <text x="200" y="394" text-anchor="middle" fill="#645f56" font-family="JetBrains Mono" font-size="9" letter-spacing="2">DELIVERY</text>
+          <text x="200" y="200" text-anchor="middle" dominant-baseline="middle" fill="#0a0908" font-family="JetBrains Mono" font-size="7" font-weight="600" letter-spacing="1" transform="translate(0 60)">FORGE</text>
+
+          <defs>
+            <radialGradient id="core-grad">
+              <stop offset="0%" stop-color="#fff5d9"/>
+              <stop offset="40%" stop-color="#ffb347"/>
+              <stop offset="100%" stop-color="#ff6a1f"/>
+            </radialGradient>
+          </defs>
+        </svg>
+      </div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stats-grid">
+        <div>
+          <div class="stat-label">Domains Covered</div>
+          <div class="stat-value">12<span class="unit">+</span></div>
+        </div>
+        <div>
+          <div class="stat-label">Sample Turnaround</div>
+          <div class="stat-value">2–3<span class="unit">wks</span></div>
+        </div>
+        <div>
+          <div class="stat-label">Verification</div>
+          <div class="stat-value">100<span class="unit">%</span></div>
+        </div>
+        <div>
+          <div class="stat-label">Methodology</div>
+          <div class="stat-value">Docs<span class="unit">incl.</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ CAPABILITIES ============ -->
+<section id="capabilities">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Capabilities</div>
+      <h2>What we <span class="italic">forge</span>.</h2>
+      <p class="section-lead">
+        Five modes of dataset construction, picked and combined to match your training or evaluation objective. Every project ships with a documented schema, generation pipeline, verification layer, and eval harness.
+      </p>
+    </div>
+
+    <div class="cap-grid">
+      <div class="cap-card">
+        <div class="cap-num">01 / Synthesis</div>
+        <h3 class="cap-title">Pure synthetic generation</h3>
+        <p class="cap-desc">Language models, simulators, and procedural pipelines producing high-volume corpora at scale. Schema-controlled, diversity-tuned, contamination-checked.</p>
+        <div class="cap-tags">
+          <span class="cap-tag">instruction data</span>
+          <span class="cap-tag">pretraining mixes</span>
+          <span class="cap-tag">tool-use corpora</span>
+        </div>
+      </div>
+
+      <div class="cap-card">
+        <div class="cap-num">02 / Hybrid</div>
+        <h3 class="cap-title">Generation with verification</h3>
+        <p class="cap-desc">Model-generated content paired with execution checking, constraint satisfaction, or programmatic validators. Correctness guaranteed, not assumed.</p>
+        <div class="cap-tags">
+          <span class="cap-tag">verified code</span>
+          <span class="cap-tag">math reasoning</span>
+          <span class="cap-tag">structured output</span>
+        </div>
+      </div>
+
+      <div class="cap-card">
+        <div class="cap-num">03 / Trajectories</div>
+        <h3 class="cap-title">Agentic rollouts &amp; RL data</h3>
+        <p class="cap-desc">Multi-turn agent traces in real or simulated environments, with tool calls, recovery patterns, and reward signals attached.</p>
+        <div class="cap-tags">
+          <span class="cap-tag">shopping agents</span>
+          <span class="cap-tag">coding agents</span>
+          <span class="cap-tag">browser use</span>
+        </div>
+      </div>
+
+      <div class="cap-card">
+        <div class="cap-num">04 / Expert-in-loop</div>
+        <h3 class="cap-title">Human-verified reasoning</h3>
+        <p class="cap-desc">Domain expert review, rubric grading, and preference annotation where judgment matters. Medical, legal, financial, scientific.</p>
+        <div class="cap-tags">
+          <span class="cap-tag">RLHF / DPO</span>
+          <span class="cap-tag">rubric scoring</span>
+          <span class="cap-tag">domain reasoning</span>
+        </div>
+      </div>
+
+      <div class="cap-card">
+        <div class="cap-num">05 / Adversarial</div>
+        <h3 class="cap-title">Edge cases &amp; red-team</h3>
+        <p class="cap-desc">Deliberate construction of failure modes, jailbreak attempts, prompt injection patterns, and long-tail behaviors that natural data misses.</p>
+        <div class="cap-tags">
+          <span class="cap-tag">safety evals</span>
+          <span class="cap-tag">refusal calibration</span>
+          <span class="cap-tag">stress testing</span>
+        </div>
+      </div>
+
+      <div class="cap-card">
+        <div class="cap-num">06 / Benchmarks</div>
+        <h3 class="cap-title">Custom eval datasets</h3>
+        <p class="cap-desc">Internal benchmarks built from scratch — held-out construction, difficulty calibration, documented scoring. Signal that public benchmarks have lost.</p>
+        <div class="cap-tags">
+          <span class="cap-tag">capability evals</span>
+          <span class="cap-tag">regression suites</span>
+          <span class="cap-tag">private benchmarks</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PROCESS ============ -->
+<section id="process" class="process-section">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Process</div>
+      <h2>From spec to <span class="italic">delivery</span>.</h2>
+      <p class="section-lead">
+        Start with a 100–500 example paid sample to evaluate fit. Scale the full dataset once the methodology clears your bar.
+      </p>
+    </div>
+
+    <div class="process-grid">
+      <div class="process-step">
+        <div class="process-num">STEP 01</div>
+        <h3 class="process-title">Scoping call</h3>
+        <p class="process-desc">30 minutes to diagnose the training or eval objective, current data gaps, and verification bar. We leave with a draft spec.</p>
+      </div>
+      <div class="process-step">
+        <div class="process-num">STEP 02</div>
+        <h3 class="process-title">Sample build</h3>
+        <p class="process-desc">100–500 examples, $2K–5K, 2–3 week turnaround. Documented methodology, agreed acceptance criteria, 50% upfront.</p>
+      </div>
+      <div class="process-step">
+        <div class="process-num">STEP 03</div>
+        <h3 class="process-title">Evaluation</h3>
+        <p class="process-desc">Quality report, schema validation, and eval harness handed over. You verify against your model and your bar.</p>
+      </div>
+      <div class="process-step">
+        <div class="process-num">STEP 04</div>
+        <h3 class="process-title">Full dataset</h3>
+        <p class="process-desc">Once the sample clears, we scope and produce the full corpus at the volume and cadence you need.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EXAMPLES ============ -->
+<section id="examples">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">Example Requests</div>
+      <h2>What customers ask <span class="italic">for</span>.</h2>
+      <p class="section-lead">
+        Illustrative scope of work we take on. Yours will be specified to your exact objective.
+      </p>
+    </div>
+
+    <div class="examples-grid">
+      <div class="example-card">
+        <div class="example-domain">Agentic RL</div>
+        <h3 class="example-title">Shopping agent trajectories</h3>
+        <p class="example-desc">Multi-turn rollouts of an agent navigating a storefront — comparing products, applying coupons, handling out-of-stock — with reward signals tied to task completion and constraint satisfaction.</p>
+        <div class="example-meta">
+          <span>VOLUME · <span class="val">10–50K</span></span>
+          <span>VERIFIED · <span class="val">YES</span></span>
+        </div>
+      </div>
+
+      <div class="example-card">
+        <div class="example-domain">Multi-agent</div>
+        <h3 class="example-title">Workflow orchestration traces</h3>
+        <p class="example-desc">Researcher → analyst → reviewer → executor handoffs for enterprise workflows like incident response and procurement. Role-specific behaviors with ground-truth outcomes.</p>
+        <div class="example-meta">
+          <span>VOLUME · <span class="val">5–20K</span></span>
+          <span>VERIFIED · <span class="val">YES</span></span>
+        </div>
+      </div>
+
+      <div class="example-card">
+        <div class="example-domain">Tool use</div>
+        <h3 class="example-title">Function-calling corpus</h3>
+        <p class="example-desc">High-quality tool-call examples specific to your API surface — including auth failures, rate limits, and partial successes. Negative examples and recovery patterns included.</p>
+        <div class="example-meta">
+          <span>VOLUME · <span class="val">20–100K</span></span>
+          <span>VERIFIED · <span class="val">YES</span></span>
+        </div>
+      </div>
+
+      <div class="example-card">
+        <div class="example-domain">Domain reasoning</div>
+        <h3 class="example-title">Clinical reasoning vignettes</h3>
+        <p class="example-desc">Differential diagnosis cases with expert-verified reasoning traces, grounded in published guidelines. Explicit handling of uncertainty and safety-critical edge cases.</p>
+        <div class="example-meta">
+          <span>VOLUME · <span class="val">2–10K</span></span>
+          <span>VERIFIED · <span class="val">MD review</span></span>
+        </div>
+      </div>
+
+      <div class="example-card">
+        <div class="example-domain">Evaluation</div>
+        <h3 class="example-title">Custom capability benchmark</h3>
+        <p class="example-desc">Internal eval measuring a capability your public benchmarks don't cover. Held-out construction, calibrated difficulty, documented scoring rubric.</p>
+        <div class="example-meta">
+          <span>VOLUME · <span class="val">500–2K</span></span>
+          <span>HELD-OUT · <span class="val">YES</span></span>
+        </div>
+      </div>
+
+      <div class="example-card">
+        <div class="example-domain">Alignment</div>
+        <h3 class="example-title">Preference pairs for DPO</h3>
+        <p class="example-desc">Response pairs controlled along your target axes — tone, format, citation behavior, concision — with verified preference labels for fine-tuning.</p>
+        <div class="example-meta">
+          <span>VOLUME · <span class="val">5–30K</span></span>
+          <span>VERIFIED · <span class="val">YES</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONTACT ============ -->
+<section id="contact" class="contact-section">
+  <div class="container">
+    <div class="contact-grid">
+      <div class="contact-info">
+        <div class="section-tag">Request a Dataset</div>
+        <h2>Tell us what you need to <span class="italic">train</span> or <span class="italic">evaluate</span>.</h2>
+        <p class="section-lead">
+          Describe the dataset and we'll schedule a 30-minute scoping call. We'll leave the call with a draft spec for your sample build.
+        </p>
+
+        <div class="contact-meta">
+          <div class="contact-meta-item">
+            <div class="contact-meta-label">Response</div>
+            <div class="contact-meta-val">Within 24 hours, weekdays</div>
+          </div>
+          <div class="contact-meta-item">
+            <div class="contact-meta-label">Sample</div>
+            <div class="contact-meta-val">100–500 examples · $2K–5K · 2–3 weeks</div>
+          </div>
+          <div class="contact-meta-item">
+            <div class="contact-meta-label">NDA</div>
+            <div class="contact-meta-val">Mutual NDA on request before scoping</div>
+          </div>
+          <div class="contact-meta-item">
+            <div class="contact-meta-label">Direct</div>
+            <div class="contact-meta-val"><a href="mailto:hello@syntharaforge.com">hello@syntharaforge.com</a></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-container" id="formContainer">
+        <div class="form-content">
+          <div class="form-header">
+            <div class="form-title">New Dataset Request</div>
+            <div class="form-status">ACCEPTING REQUESTS</div>
+          </div>
+
+          <!--
+            ▼ FORM ACTION CONFIGURATION ▼
+            Replace YOUR_FORMSPREE_ID below with your actual Formspree endpoint
+            (see README — takes 2 minutes to set up at formspree.io).
+            Until you do, the form will simulate a submission for testing.
+          -->
+          <form id="contactForm" action="https://formspree.io/f/mwvzzwaa" method="POST">
+
+            <div class="form-row">
+              <div class="form-field">
+                <label for="name">Name<span class="req">*</span></label>
+                <input type="text" id="name" name="name" required placeholder="Jane Chen" />
+              </div>
+              <div class="form-field">
+                <label for="email">Email<span class="req">*</span></label>
+                <input type="email" id="email" name="email" required placeholder="jane@company.ai" />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <label for="company">Company<span class="req">*</span></label>
+                <input type="text" id="company" name="company" required placeholder="Company name" />
+              </div>
+              <div class="form-field">
+                <label for="role">Your role</label>
+                <input type="text" id="role" name="role" placeholder="Post-training lead, ML eng…" />
+              </div>
+            </div>
+
+            <div class="form-field">
+              <label for="dataset_type">Dataset type<span class="req">*</span></label>
+              <select id="dataset_type" name="dataset_type" required>
+                <option value="">Select a category…</option>
+                <option>Agentic RL trajectories</option>
+                <option>Multi-agent workflow data</option>
+                <option>Tool-use / function-calling corpus</option>
+                <option>Domain reasoning (medical, legal, financial, scientific)</option>
+                <option>Custom evaluation benchmark</option>
+                <option>RLHF / DPO preference data</option>
+                <option>Adversarial / red-team dataset</option>
+                <option>Synthetic pretraining / mid-training corpus</option>
+                <option>Multimodal / vision-language data</option>
+                <option>Something else</option>
+              </select>
+            </div>
+
+            <div class="form-row">
+              <div class="form-field">
+                <label for="volume">Approx. volume</label>
+                <select id="volume" name="volume">
+                  <option value="">Not sure yet</option>
+                  <option>Sample only (100–500)</option>
+                  <option>Small (1K–10K)</option>
+                  <option>Medium (10K–100K)</option>
+                  <option>Large (100K+)</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label for="timeline">Timeline</label>
+                <select id="timeline" name="timeline">
+                  <option value="">Flexible</option>
+                  <option>ASAP (within 2 weeks)</option>
+                  <option>This month</option>
+                  <option>Next quarter</option>
+                  <option>Exploring options</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-field">
+              <label for="description">Describe what you need<span class="req">*</span></label>
+              <textarea id="description" name="description" required placeholder="What model or system are you training/evaluating? What's the gap in your current data? Schema, format, verification needs, anything we should know…"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary form-submit" id="submitBtn">
+              Send Request
+              <span class="arrow">→</span>
+            </button>
+
+            <p class="form-disclaimer">
+              We respond within 24 hours · No mailing list · Mutual NDA available
+            </p>
+          </form>
+        </div>
+
+        <div class="form-success" id="formSuccess">
+          <div class="success-icon">✓</div>
+          <h3 class="success-title">Request received.</h3>
+          <p class="success-msg">
+            We'll review your request and follow up within 24 hours to schedule a 30-minute scoping call. Check your inbox (and spam folder, just in case).
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand">Synthara<span class="accent">.</span>Forge</div>
+        <div class="footer-tag" style="margin-top: 6px;">Synthesize · Verify · Deliver</div>
+      </div>
+      <div class="footer-tag">
+        Custom datasets for AI training &amp; evaluation
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 SYNTHARA FORGE</span>
+      <span>FORGED IN CALIFORNIA · USA</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Reveal on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.cap-card, .process-step, .example-card, .section-header').forEach(el => {
+  el.classList.add('reveal');
+  observer.observe(el);
+});
+
+// Form handling
+const form = document.getElementById('contactForm');
+const container = document.getElementById('formContainer');
+const successPanel = document.getElementById('formSuccess');
+const submitBtn = document.getElementById('submitBtn');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = 'Sending… <span class="arrow">→</span>';
+
+  const action = form.getAttribute('action');
+  const isConfigured = action && !action.includes('YOUR_FORMSPREE_ID');
+
+  if (isConfigured) {
+    try {
+      const formData = new FormData(form);
+      const response = await fetch(action, {
+        method: 'POST',
+        body: formData,
+        headers: { 'Accept': 'application/json' }
+      });
+      if (response.ok) {
+        container.classList.add('submitted');
+        successPanel.classList.add('active');
+      } else {
+        throw new Error('Submission failed');
+      }
+    } catch (err) {
+      alert('Something went wrong. Please email hello@syntharaforge.com directly.');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Send Request <span class="arrow">→</span>';
+    }
+  } else {
+    // Demo mode — form endpoint not configured yet
+    setTimeout(() => {
+      container.classList.add('submitted');
+      successPanel.classList.add('active');
+    }, 800);
+  }
+});
+</script>
+
+</body>
+</html>
